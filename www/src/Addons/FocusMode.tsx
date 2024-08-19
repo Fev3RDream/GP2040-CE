@@ -7,7 +7,7 @@ import Section from '../Components/Section';
 
 import FormControl from '../Components/FormControl';
 import FormSelect from '../Components/FormSelect';
-import { BUTTON_MASKS } from '../Data/Buttons';
+import { BUTTON_MASKS_OPTIONS } from '../Data/Buttons';
 
 export const focusModeScheme = {
 	FocusModeAddonEnabled: yup
@@ -22,17 +22,9 @@ export const focusModeScheme = {
 		.number()
 		.label('Focus Mode Button Lock Enabled')
 		.validateRangeWhenValue('FocusModeAddonEnabled', 0, 1),
-	focusModeOledLockEnabled: yup
-		.number()
-		.label('Focus Mode OLED Lock Enabled')
-		.validateRangeWhenValue('FocusModeAddonEnabled', 0, 1),
 	focusModeMacroLockEnabled: yup
 		.number()
 		.label('Focus Mode Macro Lock Enabled')
-		.validateRangeWhenValue('FocusModeAddonEnabled', 0, 1),
-	focusModeRgbLockEnabled: yup
-		.number()
-		.label('Focus Mode RGB Lock Enabled')
 		.validateRangeWhenValue('FocusModeAddonEnabled', 0, 1),
 	focusModeButtonLockMask: yup
 		.number()
@@ -42,8 +34,6 @@ export const focusModeScheme = {
 
 export const focusModeState = {
 	FocusModeAddonEnabled: 0,
-	focusModeOledLockEnabled: 0,
-	focusModeRgbLockEnabled: 0,
 	focusModeMacroLockEnabled: 0,
 };
 
@@ -72,36 +62,6 @@ const FocusMode = ({
 						min={-1}
 						max={29}
 					/>
-					<div className="col-sm-3">
-						<FormCheck
-							label={t('Common:lock-oled-screen')}
-							className="form-check-sm"
-							type="switch"
-							reverse
-							id="FocusModeAddonOLEDButton"
-							isInvalid={false}
-							checked={Boolean(values.focusModeOledLockEnabled)}
-							onChange={(e) => {
-								handleCheckbox('focusModeOledLockEnabled', values);
-								handleChange(e);
-							}}
-						/>
-					</div>
-					<div className="col-sm-3">
-						<FormCheck
-							label={t('Common:lock-rgb-led')}
-							className="form-check-sm"
-							type="switch"
-							reverse
-							id="FocusModeAddonButton"
-							isInvalid={false}
-							checked={Boolean(values.focusModeRgbLockEnabled)}
-							onChange={(e) => {
-								handleCheckbox('focusModeRgbLockEnabled', values);
-								handleChange(e);
-							}}
-						/>
-					</div>
 					<div className="col-sm-3">
 						<FormCheck
 							label={t('Common:lock-macro')}
@@ -133,7 +93,7 @@ const FocusMode = ({
 						/>
 					</div>
 					<Row>
-						{BUTTON_MASKS.map((mask) =>
+						{BUTTON_MASKS_OPTIONS.map((mask) =>
 							values.focusModeButtonLockMask & mask.value ? (
 								<FormSelect
 									key={`focusModeButtonLockMask-${mask.label}`}
@@ -151,7 +111,7 @@ const FocusMode = ({
 										);
 									}}
 								>
-									{BUTTON_MASKS.map((o, i) => (
+									{BUTTON_MASKS_OPTIONS.map((o, i) => (
 										<option
 											key={`focusModeButtonLockMask-option-${i}`}
 											value={o.value}
@@ -178,7 +138,7 @@ const FocusMode = ({
 								);
 							}}
 						>
-							{BUTTON_MASKS.map((o, i) => (
+							{BUTTON_MASKS_OPTIONS.map((o, i) => (
 								<option
 									key={`focusModeButtonLockMask-option-${i}`}
 									value={o.value}

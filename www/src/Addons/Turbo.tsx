@@ -7,7 +7,7 @@ import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
 import FormControl from '../Components/FormControl';
 import AnalogPinOptions from '../Components/AnalogPinOptions';
-import { BUTTON_MASKS } from '../Data/Buttons';
+import { BUTTON_MASKS_OPTIONS } from '../Data/Buttons';
 import { DUAL_STICK_MODES } from '../Data/Addons';
 
 const SHMUP_MIXED_MODES = [
@@ -31,10 +31,6 @@ const TURBO_MASKS = [
 
 export const turboScheme = {
 	TurboInputEnabled: yup.number().required().label('Turbo Input Enabled'),
-	turboPin: yup
-		.number()
-		.label('Turbo Pin')
-		.validatePinWhenValue('TurboInputEnabled'),
 	turboPinLED: yup
 		.number()
 		.label('Turbo Pin LED')
@@ -74,35 +70,35 @@ export const turboScheme = {
 	shmupAlwaysOn1: yup
 		.number()
 		.label('Turbo-Button 1 (Always On)')
-		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS),
+		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
 	shmupAlwaysOn2: yup
 		.number()
 		.label('Turbo-Button 2 (Always On)')
-		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS),
+		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
 	shmupAlwaysOn3: yup
 		.number()
 		.label('Turbo-Button 3 (Always On)')
-		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS),
+		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
 	shmupAlwaysOn4: yup
 		.number()
 		.label('Turbo-Button 4 (Always On)')
-		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS),
+		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
 	shmupBtnMask1: yup
 		.number()
 		.label('Charge Shot Button 1 Map')
-		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS),
+		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
 	shmupBtnMask2: yup
 		.number()
 		.label('Charge Shot Button 2 Map')
-		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS),
+		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
 	shmupBtnMask3: yup
 		.number()
 		.label('Charge Shot Button 3 Map')
-		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS),
+		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
 	shmupBtnMask4: yup
 		.number()
 		.label('Charge Shot Button 4 Map')
-		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS),
+		.validateSelectionWhenValue('TurboInputEnabled', BUTTON_MASKS_OPTIONS),
 };
 
 export const turboState = {
@@ -122,7 +118,6 @@ export const turboState = {
 	shmupMixMode: 0,
 	shmupMode: 0,
 	TurboInputEnabled: 0,
-	turboPin: -1,
 	turboPinLED: -1,
 	turboShotCount: 5,
 };
@@ -133,19 +128,6 @@ const Turbo = ({ values, errors, handleChange, handleCheckbox }) => {
 		<Section title={t('AddonsConfig:turbo-header-text')}>
 			<div id="TurboInputOptions" hidden={!values.TurboInputEnabled}>
 				<Row className="mb-3">
-					<FormControl
-						type="number"
-						label={t('AddonsConfig:turbo-button-pin-label')}
-						name="turboPin"
-						className="form-select-sm"
-						groupClassName="col-sm-3 mb-3"
-						value={values.turboPin}
-						error={errors.turboPin}
-						isInvalid={errors.turboPin}
-						onChange={handleChange}
-						min={-1}
-						max={29}
-					/>
 					<FormControl
 						type="number"
 						label={t('AddonsConfig:turbo-led-pin-label')}

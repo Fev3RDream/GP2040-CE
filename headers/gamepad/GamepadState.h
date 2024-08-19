@@ -11,12 +11,6 @@ using namespace std;
 #include "GamepadEnums.h"
 #include "enums.pb.h"
 
-#include "gamepad/descriptors/HIDDescriptors.h"
-#include "gamepad/descriptors/SwitchDescriptors.h"
-#include "gamepad/descriptors/XInputDescriptors.h"
-#include "gamepad/descriptors/PS4Descriptors.h"
-
-#define GAMEPAD_BUTTON_COUNT 14
 
 /*
 	Gamepad button mapping table:
@@ -60,6 +54,8 @@ using namespace std;
 #define GAMEPAD_MASK_R3    (1U << 11)
 #define GAMEPAD_MASK_A1    (1U << 12)
 #define GAMEPAD_MASK_A2    (1U << 13)
+#define GAMEPAD_MASK_A3    (1U << 14)
+#define GAMEPAD_MASK_A4    (1U << 15)
 
 // For detecting dpad as buttons
 
@@ -68,12 +64,21 @@ using namespace std;
 #define GAMEPAD_MASK_DL    (1UL << 18)
 #define GAMEPAD_MASK_DR    (1UL << 19)
 
-// For detecting analog sticks as buttons
+// extra buttons (no particular host expectation for these, unlike 0..13 above
+// which have predetermined functions for consoles or whatever)
 
-#define GAMEPAD_MASK_LX    (1UL << 20)
-#define GAMEPAD_MASK_LY    (1UL << 21)
-#define GAMEPAD_MASK_RX    (1UL << 22)
-#define GAMEPAD_MASK_RY    (1UL << 23)
+#define GAMEPAD_MASK_E1    (1UL << 20)
+#define GAMEPAD_MASK_E2    (1UL << 21)
+#define GAMEPAD_MASK_E3    (1UL << 22)
+#define GAMEPAD_MASK_E4    (1UL << 23)
+#define GAMEPAD_MASK_E5    (1UL << 24)
+#define GAMEPAD_MASK_E6    (1UL << 25)
+#define GAMEPAD_MASK_E7    (1UL << 26)
+#define GAMEPAD_MASK_E8    (1UL << 27)
+#define GAMEPAD_MASK_E9    (1UL << 28)
+#define GAMEPAD_MASK_E10   (1UL << 29)
+#define GAMEPAD_MASK_E11   (1UL << 30)
+#define GAMEPAD_MASK_E12   (1UL << 31)
 
 #define GAMEPAD_MASK_DPAD (GAMEPAD_MASK_UP | GAMEPAD_MASK_DOWN | GAMEPAD_MASK_LEFT | GAMEPAD_MASK_RIGHT)
 
@@ -98,7 +103,7 @@ const uint8_t dpadMasks[] =
 	GAMEPAD_MASK_RIGHT,
 };
 
-const uint16_t buttonMasks[] =
+const uint32_t buttonMasks[] =
 {
 	GAMEPAD_MASK_B1,
 	GAMEPAD_MASK_B2,
@@ -114,12 +119,34 @@ const uint16_t buttonMasks[] =
 	GAMEPAD_MASK_R3,
 	GAMEPAD_MASK_A1,
 	GAMEPAD_MASK_A2,
+	GAMEPAD_MASK_E1,
+	GAMEPAD_MASK_E2,
+	GAMEPAD_MASK_E3,
+	GAMEPAD_MASK_E4,
+	GAMEPAD_MASK_E5,
+	GAMEPAD_MASK_E6,
+	GAMEPAD_MASK_E7,
+	GAMEPAD_MASK_E8,
+	GAMEPAD_MASK_E9,
+	GAMEPAD_MASK_E10,
+	GAMEPAD_MASK_E11,
+	GAMEPAD_MASK_E12,
+};
+
+struct GamepadRumbleState
+{
+	// XInput General Motors
+	uint8_t leftMotor {0};
+	uint8_t rightMotor {0};
+	// GameInput Trigger Motors (XBOne)
+	uint8_t leftTrigger {0};
+	uint8_t rightTrigger {0};
 };
 
 struct GamepadState
 {
 	uint8_t dpad {0};
-	uint16_t buttons {0};
+	uint32_t buttons {0};
 	uint16_t aux {0};
 	uint16_t lx {GAMEPAD_JOYSTICK_MID};
 	uint16_t ly {GAMEPAD_JOYSTICK_MID};
@@ -129,96 +156,15 @@ struct GamepadState
 	uint8_t rt {0};
 };
 
-// Move the values for the 8-bit modes to the MSB of a 16-bit for conversion later
-// Resolves issues where 0x80 is center and 0x7F is not
-inline uint16_t GetJoystickMidValue(uint8_t mode) {
-    switch (mode) {
-        case INPUT_MODE_XINPUT:
-            return GAMEPAD_JOYSTICK_MID;
-
-        case INPUT_MODE_SWITCH:
-            return SWITCH_JOYSTICK_MID << 8;
-
-        case INPUT_MODE_HID:
-            return HID_JOYSTICK_MID << 8;
-
-        case INPUT_MODE_KEYBOARD:
-            return HID_JOYSTICK_MID << 8;
-
-        case INPUT_MODE_PS4:
-            return PS4_JOYSTICK_MID << 8;
-
-        default:
-            return GAMEPAD_JOYSTICK_MID;
-    }
-}
-
 // Convert the horizontal GamepadState dpad axis value into an analog value
-inline uint16_t dpadToAnalogX(uint8_t dpad, uint8_t mode)
-{
-	switch (dpad & (GAMEPAD_MASK_LEFT | GAMEPAD_MASK_RIGHT))
-	{
-		case GAMEPAD_MASK_LEFT:
-			return GAMEPAD_JOYSTICK_MIN;
-
-		case GAMEPAD_MASK_RIGHT:
-			return GAMEPAD_JOYSTICK_MAX;
-
-		default:
-			return GetJoystickMidValue(mode);
-	}
-}
+uint16_t dpadToAnalogX(uint8_t dpad);
 
 // Convert the vertical GamepadState dpad axis value into an analog value
-inline uint16_t dpadToAnalogY(uint8_t dpad, uint8_t mode)
-{
-	switch (dpad & (GAMEPAD_MASK_UP | GAMEPAD_MASK_DOWN))
-	{
-		case GAMEPAD_MASK_UP:
-			return GAMEPAD_JOYSTICK_MIN;
+uint16_t dpadToAnalogY(uint8_t dpad);
 
-		case GAMEPAD_MASK_DOWN:
-			return GAMEPAD_JOYSTICK_MAX;
+uint8_t getMaskFromDirection(DpadDirection direction);
 
-		default:
-			return GetJoystickMidValue(mode);
-	}
-}
-
-inline uint8_t getMaskFromDirection(DpadDirection direction)
-{
-	return dpadMasks[direction-1];
-}
-
-inline uint8_t updateDpad(uint8_t dpad, DpadDirection direction)
-{
-	static bool inList[] = {false, false, false, false, false}; // correspond to DpadDirection: none, up, down, left, right
-	static list<DpadDirection> dpadList;
-
-	if(dpad & getMaskFromDirection(direction))
-	{
-		if(!inList[direction])
-		{
-			dpadList.push_back(direction);
-			inList[direction] = true;
-		}
-	}
-	else
-	{
-		if(inList[direction])
-		{
-			dpadList.remove(direction);
-			inList[direction] = false;
-		}
-	}
-
-	if(dpadList.empty()) {
-		return 0;
-	}
-	else {
-		return getMaskFromDirection(dpadList.back());
-	}
-}
+uint8_t updateDpad(uint8_t dpad, DpadDirection direction);
 
 /**
  * @brief Filter diagonals out of the dpad, making the device work as a 4-way lever.
@@ -228,13 +174,7 @@ inline uint8_t updateDpad(uint8_t dpad, DpadDirection direction)
  * @param dpad The GameState.dpad value.
  * @return uint8_t The new dpad value.
  */
-inline uint8_t filterToFourWayMode(uint8_t dpad)
-{
-	updateDpad(dpad, DIRECTION_UP);
-	updateDpad(dpad, DIRECTION_DOWN);
-	updateDpad(dpad, DIRECTION_LEFT);
-	return updateDpad(dpad, DIRECTION_RIGHT);
-}
+uint8_t filterToFourWayMode(uint8_t dpad);
 
 /**
  * @brief Run SOCD cleaning against a D-pad value.
@@ -243,72 +183,4 @@ inline uint8_t filterToFourWayMode(uint8_t dpad)
  * @param dpad The GamepadState.dpad value.
  * @return uint8_t The clean D-pad value.
  */
-inline uint8_t runSOCDCleaner(SOCDMode mode, uint8_t dpad)
-{
-	if (mode == SOCD_MODE_BYPASS) {
-		return dpad;
-	}
-
-	static DpadDirection lastUD = DIRECTION_NONE;
-	static DpadDirection lastLR = DIRECTION_NONE;
-	uint8_t newDpad = 0;
-
-	switch (dpad & (GAMEPAD_MASK_UP | GAMEPAD_MASK_DOWN))
-	{
-		case (GAMEPAD_MASK_UP | GAMEPAD_MASK_DOWN):
-			if (mode == SOCD_MODE_UP_PRIORITY)
-			{
-				newDpad |= GAMEPAD_MASK_UP;
-				lastUD = DIRECTION_UP;
-			}
-			else if (mode == SOCD_MODE_SECOND_INPUT_PRIORITY && lastUD != DIRECTION_NONE)
-				newDpad |= (lastUD == DIRECTION_UP) ? GAMEPAD_MASK_DOWN : GAMEPAD_MASK_UP;
-			else if (mode == SOCD_MODE_FIRST_INPUT_PRIORITY && lastUD != DIRECTION_NONE)
-				newDpad |= (lastUD == DIRECTION_UP) ? GAMEPAD_MASK_UP : GAMEPAD_MASK_DOWN;
-			else
-				lastUD = DIRECTION_NONE;
-			break;
-
-		case GAMEPAD_MASK_UP:
-			newDpad |= GAMEPAD_MASK_UP;
-			lastUD = DIRECTION_UP;
-			break;
-
-		case GAMEPAD_MASK_DOWN:
-			newDpad |= GAMEPAD_MASK_DOWN;
-			lastUD = DIRECTION_DOWN;
-			break;
-
-		default:
-			lastUD = DIRECTION_NONE;
-			break;
-	}
-
-	switch (dpad & (GAMEPAD_MASK_LEFT | GAMEPAD_MASK_RIGHT))
-	{
-		case (GAMEPAD_MASK_LEFT | GAMEPAD_MASK_RIGHT):
-			if (mode == SOCD_MODE_SECOND_INPUT_PRIORITY && lastLR != DIRECTION_NONE)
-				newDpad |= (lastLR == DIRECTION_LEFT) ? GAMEPAD_MASK_RIGHT : GAMEPAD_MASK_LEFT;
-			else if (mode == SOCD_MODE_FIRST_INPUT_PRIORITY && lastLR != DIRECTION_NONE)
-				newDpad |= (lastLR == DIRECTION_LEFT) ? GAMEPAD_MASK_LEFT : GAMEPAD_MASK_RIGHT;
-			else
-				lastLR = DIRECTION_NONE;
-			break;
-
-		case GAMEPAD_MASK_LEFT:
-			newDpad |= GAMEPAD_MASK_LEFT;
-			lastLR = DIRECTION_LEFT;
-			break;
-
-		case GAMEPAD_MASK_RIGHT:
-			newDpad |= GAMEPAD_MASK_RIGHT;
-			lastLR = DIRECTION_RIGHT;
-			break;
-
-		default:
-			lastLR = DIRECTION_NONE;
-			break;
-	}
-
-	return newDpad;
-}
+uint8_t runSOCDCleaner(SOCDMode mode, uint8_t dpad);

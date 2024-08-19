@@ -1,18 +1,29 @@
 #include "addons/wiiext.h"
+#include "drivermanager.h"
 #include "storagemanager.h"
 #include "hardware/gpio.h"
 #include "helper.h"
 #include "config.pb.h"
 
 bool WiiExtensionInput::available() {
-    const DisplayOptions& displayOptions = Storage::getInstance().getDisplayOptions();
     const WiiOptions& options = Storage::getInstance().getAddonOptions().wiiOptions;
-    return (!displayOptions.enabled && options.enabled && PeripheralManager::getInstance().isI2CEnabled(options.i2cBlock));
+    if (options.enabled) {
+        // addon is enabled. let's scan available blocks.
+        wii = new WiiExtensionDevice();
+        PeripheralI2CScanResult result = PeripheralManager::getInstance().scanForI2CDevice(wii->getDeviceAddresses());
+        if (result.address > -1) {
+            wii->setAddress(result.address);
+            wii->setI2C(PeripheralManager::getInstance().getI2C(result.block));
+            return true;
+        } else {
+            delete wii;
+        }
+    }
+    return false;
 }
 
 void WiiExtensionInput::setup() {
     const WiiOptions& options = Storage::getInstance().getAddonOptions().wiiOptions;
-    PeripheralI2C* i2c = PeripheralManager::getInstance().getI2C(options.i2cBlock);
     nextTimer = getMillis();
 
 #if WII_EXTENSION_DEBUG==true
@@ -23,9 +34,9 @@ void WiiExtensionInput::setup() {
 
     currentConfig = NULL;
     
-    wii = new WiiExtension(
-        i2c,
-        WII_EXTENSION_I2C_ADDR);
+    //wii = new WiiExtensionDevice(
+    //    i2c,
+    //    WII_EXTENSION_I2C_ADDR);
     wii->begin();
     wii->start();
 
@@ -96,7 +107,10 @@ uint16_t WiiExtensionInput::bounds(uint16_t x, uint16_t out_min, uint16_t out_ma
 
 void WiiExtensionInput::update() {
     if (wii->extensionType != WII_EXTENSION_NONE) {
-        uint16_t joystickMid = GetJoystickMidValue(Storage::getInstance().getGamepadOptions().inputMode);
+        uint16_t joystickMid = GAMEPAD_JOYSTICK_MID;
+        if ( DriverManager::getInstance().getDriver() != nullptr ) {
+            joystickMid = DriverManager::getInstance().getDriver()->GetJoystickMidValue();
+        }
         currentConfig = &extensionConfigs[wii->extensionType];
 
         //for (const auto& [extensionButton, value] : currentConfig->buttonMap) {
@@ -154,7 +168,7 @@ void WiiExtensionInput::update() {
             buttonA = wii->getController()->buttons[GuitarButtons::GUITAR_RED];
             buttonX = wii->getController()->buttons[GuitarButtons::GUITAR_YELLOW];
             buttonY = wii->getController()->buttons[GuitarButtons::GUITAR_BLUE];
-            buttonL = wii->getController()->buttons[GuitarButtons::GUITAR_ORANGE];
+            buttonZL = wii->getController()->buttons[GuitarButtons::GUITAR_ORANGE];
 
             // whammy currently maps to Joy2X in addition to the raw whammy value
             whammyBar = wii->getController()->analogState[WiiAnalogs::WII_ANALOG_RIGHT_X];
@@ -167,6 +181,8 @@ void WiiExtensionInput::update() {
 
             triggerLeft = 0;
             triggerRight = 0;
+
+            isAnalogTriggers = true;
         } else if (wii->extensionType == WII_EXTENSION_TAIKO) {
             buttonL = wii->getController()->buttons[TaikoButtons::TATA_KAT_LEFT];
             buttonR = wii->getController()->buttons[TaikoButtons::TATA_KAT_RIGHT];
@@ -191,6 +207,8 @@ void WiiExtensionInput::update() {
 
             triggerLeft = 0;
             triggerRight = 0;
+
+            isAnalogTriggers = true;
         } else if (wii->extensionType == WII_EXTENSION_TURNTABLE) {
             buttonSelect = wii->getController()->buttons[WiiButtons::WII_BUTTON_MINUS];
             buttonStart = wii->getController()->buttons[WiiButtons::WII_BUTTON_PLUS];
@@ -335,7 +353,10 @@ void WiiExtensionInput::updateAnalogState() {
     Gamepad * gamepad = Storage::getInstance().GetGamepad();
     gamepad->hasAnalogTriggers = isAnalogTriggers;
 
-    uint16_t joystickMid = GetJoystickMidValue(Storage::getInstance().getGamepadOptions().inputMode);
+    uint16_t joystickMid = GAMEPAD_JOYSTICK_MID;
+    if ( DriverManager::getInstance().getDriver() != nullptr ) {
+        joystickMid = DriverManager::getInstance().getDriver()->GetJoystickMidValue();
+    }
 
     uint16_t axisType;
     uint16_t analogInput;
@@ -415,11 +436,11 @@ void WiiExtensionInput::updateAnalogState() {
                     break;
                 case WII_ANALOG_TYPE_LEFT_TRIGGER:
                     axisToChange = WII_ANALOG_TYPE_LEFT_TRIGGER;
-                    adjustedValue = bounds(analogValue,minValue,maxValue);
+                    adjustedValue = map(analogValue,minValue,maxValue,GAMEPAD_TRIGGER_MIN,GAMEPAD_TRIGGER_MAX);
                     break;
                 case WII_ANALOG_TYPE_RIGHT_TRIGGER:
                     axisToChange = WII_ANALOG_TYPE_RIGHT_TRIGGER;
-                    adjustedValue = bounds(analogValue,minValue,maxValue);
+                    adjustedValue = map(analogValue,minValue,maxValue,GAMEPAD_TRIGGER_MIN,GAMEPAD_TRIGGER_MAX);
                     break;
                 // advanced types
                 case WII_ANALOG_TYPE_LEFT_STICK_X_PLUS:

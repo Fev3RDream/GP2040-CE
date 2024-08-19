@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: MIT
- * SPDX-FileCopyrightText: Copyright (c) 2021 Jason Skuby (mytechtoybox.com)
+ * SPDX-FileCopyrightText: Copyright (c) 2024 OpenStickCommunity (gp2040-ce.info)
  */
 
 #include "storagemanager.h"
@@ -15,39 +15,16 @@
 #include "CRC32.h"
 #include "types.h"
 
-#include "addons/analog.h"
-#include "addons/board_led.h"
-#include "addons/bootsel_button.h"
-#include "addons/buzzerspeaker.h"
-#include "addons/dualdirectional.h"
-#include "addons/i2canalog1219.h"
-#include "addons/i2cdisplay.h"
-#include "addons/jslider.h"
-#include "addons/neopicoleds.h"
-#include "addons/playernum.h"
-#include "addons/ps4mode.h"
-#include "addons/pleds.h"
-#include "addons/reverse.h"
-#include "addons/turbo.h"
-#include "addons/slider_socd.h"
-#include "addons/wiiext.h"
-#include "addons/input_macro.h"
-#include "addons/snes_input.h"
-#include "addons/tilt.h"
-
 #include "config_utils.h"
 
 #include "bitmaps.h"
 
 #include "helper.h"
 
-Storage::Storage()
-{
+void Storage::init() {
 	EEPROM.start();
 	critical_section_init(&animationOptionsCs);
 	ConfigUtils::load(config);
-
-	setFunctionalPinMappings(config.gamepadOptions.profileNumber);
 }
 
 bool Storage::save()
@@ -103,6 +80,7 @@ static void updateAnimationOptionsProto(const AnimationOptions& options)
 	optionsProto.customThemeA2Pressed		= options.customThemeA2Pressed;
 	optionsProto.customThemeL3Pressed		= options.customThemeL3Pressed;
 	optionsProto.customThemeR3Pressed		= options.customThemeR3Pressed;
+	optionsProto.buttonPressColorCooldownTimeInMs = options.buttonPressColorCooldownTimeInMs;	
 }
 
 void Storage::performEnqueuedSaves()
@@ -138,44 +116,36 @@ void Storage::ResetSettings()
 
 void Storage::setProfile(const uint32_t profileNum)
 {
-	if (profileNum < 1 || profileNum > 4) return;
-	setFunctionalPinMappings(profileNum);
-	this->config.gamepadOptions.profileNumber = profileNum;
+	this->config.gamepadOptions.profileNumber = (profileNum < 1 || profileNum > 4) ? 1 : profileNum;
 }
 
-void Storage::setFunctionalPinMappings(const uint32_t profileNum)
+void Storage::nextProfile()
 {
+    this->config.gamepadOptions.profileNumber = (this->config.gamepadOptions.profileNumber % 4) + 1;
+}
+
+void Storage::setFunctionalPinMappings()
+{
+	GpioMappingInfo* alts = nullptr;
+	if (config.gamepadOptions.profileNumber >= 2 && config.gamepadOptions.profileNumber <= 4)
+		alts = this->config.profileOptions.gpioMappingsSets[config.gamepadOptions.profileNumber-2].pins;
+
 	for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
-		functionalPinMappings[pin] = this->config.gpioMappings.pins[pin].action;
-	}
-	if (profileNum < 2 || profileNum > 4) return;
-
-	AlternativePinMappings alts = this->config.profileOptions.alternativePinMappings[profileNum-2];
-
-	const auto reassignProfilePin = [&](Pin_t targetPin, GpioAction newAction) -> void {
-		// reassign the functional pin if:
-		// 1: it's a real pin (this only matters until profiles are refactored)
+		// assign the functional pin to the profile pin if:
+		// 1: there was a profile to load
 		// 2: the new action isn't RESERVED or ASSIGNED_TO_ADDON (profiles can't affect special addons)
 		// 3: the old action isn't RESERVED or ASSIGNED_TO_ADDON (profiles can't affect special addons)
-		if (isValidPin(targetPin) && newAction != GpioAction::RESERVED &&
-				newAction != GpioAction::ASSIGNED_TO_ADDON &&
-				functionalPinMappings[targetPin] != GpioAction::RESERVED &&
-				functionalPinMappings[targetPin] != GpioAction::ASSIGNED_TO_ADDON) {
-			functionalPinMappings[targetPin] = newAction;
+		// else use whatever is in the core mapping
+		if (alts != nullptr &&
+				alts[pin].action != GpioAction::RESERVED &&
+				alts[pin].action != GpioAction::ASSIGNED_TO_ADDON &&
+				this->config.gpioMappings.pins[pin].action != GpioAction::RESERVED &&
+				this->config.gpioMappings.pins[pin].action != GpioAction::ASSIGNED_TO_ADDON) {
+			functionalPinMappings[pin] = alts[pin];
+		} else {
+			functionalPinMappings[pin] = this->config.gpioMappings.pins[pin];
 		}
-	};
-	reassignProfilePin(alts.pinButtonB1,  GpioAction::BUTTON_PRESS_B1);
-	reassignProfilePin(alts.pinButtonB2,  GpioAction::BUTTON_PRESS_B2);
-	reassignProfilePin(alts.pinButtonB3,  GpioAction::BUTTON_PRESS_B3);
-	reassignProfilePin(alts.pinButtonB4,  GpioAction::BUTTON_PRESS_B4);
-	reassignProfilePin(alts.pinButtonL1,  GpioAction::BUTTON_PRESS_L1);
-	reassignProfilePin(alts.pinButtonR1,  GpioAction::BUTTON_PRESS_R1);
-	reassignProfilePin(alts.pinButtonL2,  GpioAction::BUTTON_PRESS_L2);
-	reassignProfilePin(alts.pinButtonR2,  GpioAction::BUTTON_PRESS_R2);
-	reassignProfilePin(alts.pinDpadUp,    GpioAction::BUTTON_PRESS_UP);
-	reassignProfilePin(alts.pinDpadDown,  GpioAction::BUTTON_PRESS_DOWN);
-	reassignProfilePin(alts.pinDpadLeft,  GpioAction::BUTTON_PRESS_LEFT);
-	reassignProfilePin(alts.pinDpadRight, GpioAction::BUTTON_PRESS_RIGHT);
+	}
 }
 
 void Storage::SetConfigMode(bool mode) { // hack for config mode
@@ -274,6 +244,7 @@ AnimationOptions AnimationStorage::getAnimationOptions()
 	options.customThemeA2Pressed	= optionsProto.customThemeA2Pressed;
 	options.customThemeL3Pressed	= optionsProto.customThemeL3Pressed;
 	options.customThemeR3Pressed	= optionsProto.customThemeR3Pressed;
+	options.buttonPressColorCooldownTimeInMs = optionsProto.buttonPressColorCooldownTimeInMs;		
 
 	return options;
 }

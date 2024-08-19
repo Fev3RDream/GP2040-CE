@@ -3,7 +3,7 @@ export default {
 	'sub-header-text':
 		'Verwenden Sie das Formular unten, um Ihre Tasten-zu-Pin-Zuordnung neu zu konfigurieren.',
 	'alert-text':
-		"Die Zuordnung von Tasten zu Pins, die nicht verbunden oder verfügbar sind, kann das Gerät in einen nicht funktionsfähigen Zustand versetzen. Um die ungültige Konfiguration zu löschen, gehen Sie zur Seite <1>Einstellungen zurücksetzen</1>.",
+		'Die Zuordnung von Tasten zu Pins, die nicht verbunden oder verfügbar sind, kann das Gerät in einen nicht funktionsfähigen Zustand versetzen. Um die ungültige Konfiguration zu löschen, gehen Sie zur Seite <2>Einstellungen zurücksetzen</2>.',
 	'pin-header-label': 'Pin',
 	errors: {
 		conflict: 'Pin {{pin}} ist bereits zugewiesen zu {{conflictedMappings}}',
@@ -11,7 +11,6 @@ export default {
 		invalid: '{{pin}} ist ungültig für dieses Board',
 		used: '{{pin}} ist bereits einer anderen Funktion zugewiesen',
 	},
-	'all-capture-button-label': 'Gamepad Pins Zuweisen\u00A0\u00A0🎮',
 	actions: {
 		NONE: 'Keine',
 		RESERVED: 'Reserviert',
@@ -47,5 +46,13 @@ export default {
 		SUSTAIN_SOCD_MODE_SECOND_WIN: 'Letzter Gewinnt SOCD Säuberung',
 		SUSTAIN_SOCD_MODE_FIRST_WIN: 'Erster Gewinnt SOCD Säuberung',
 		SUSTAIN_SOCD_MODE_BYPASS: 'SOCD Säuberung Aus',
+		BUTTON_PRESS_TURBO: 'Turbo',
+		BUTTON_PRESS_MACRO: 'Makro',
+		BUTTON_PRESS_MACRO_1: 'Makro 1',
+		BUTTON_PRESS_MACRO_2: 'Makro 2',
+		BUTTON_PRESS_MACRO_3: 'Makro 3',
+		BUTTON_PRESS_MACRO_4: 'Makro 4',
+		BUTTON_PRESS_MACRO_5: 'Makro 5',
+		BUTTON_PRESS_MACRO_6: 'Makro 6',
 	},
 };

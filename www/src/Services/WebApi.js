@@ -1,4 +1,4 @@
-import axios from 'axios';
+import Http from './Http';
 import { hexToInt, rgbIntToHex } from './Utilities';
 
 export const baseUrl =
@@ -25,6 +25,20 @@ export const baseButtonMappings = {
 	R3: { pin: -1, key: 0, error: null },
 	A1: { pin: -1, key: 0, error: null },
 	A2: { pin: -1, key: 0, error: null },
+	A3: { pin: -1, key: 0, error: null },
+	A4: { pin: -1, key: 0, error: null },
+	E1: { pin: -1, key: 0, error: null },
+	E2: { pin: -1, key: 0, error: null },
+	E3: { pin: -1, key: 0, error: null },
+	E4: { pin: -1, key: 0, error: null },
+	E5: { pin: -1, key: 0, error: null },
+	E6: { pin: -1, key: 0, error: null },
+	E7: { pin: -1, key: 0, error: null },
+	E8: { pin: -1, key: 0, error: null },
+	E9: { pin: -1, key: 0, error: null },
+	E10: { pin: -1, key: 0, error: null },
+	E11: { pin: -1, key: 0, error: null },
+	E12: { pin: -1, key: 0, error: null },
 	Fn: { pin: -1, key: 0, error: null },
 };
 
@@ -76,40 +90,40 @@ export const baseProfileOptions = {
 };
 
 export const basePeripheralMapping = {
-    peripheral: {
-        i2c0: {
-            enabled: 0,
-            sda: -1,
-            scl: -1,
-            speed: 400000,
-        },
-        i2c1: {
-            enabled: 0,
-            sda: -1,
-            scl: -1,
-            speed: 400000,
-        },
-        spi0: {
-            enabled: 0,
-            rx:  -1,
-            cs:  -1,
-            sck: -1,
-            tx:  -1,
-        },
-        spi1: {
-            enabled: 0,
-            rx:  -1,
-            cs:  -1,
-            sck: -1,
-            tx:  -1,
-        },
-        usb0: {
-            enabled: 0,
-            dp:  -1,
-            enable5v: -1,
-            order: 0,
-        }
-    }
+	peripheral: {
+		i2c0: {
+			enabled: 0,
+			sda: -1,
+			scl: -1,
+			speed: 400000,
+		},
+		i2c1: {
+			enabled: 0,
+			sda: -1,
+			scl: -1,
+			speed: 400000,
+		},
+		spi0: {
+			enabled: 0,
+			rx: -1,
+			cs: -1,
+			sck: -1,
+			tx: -1,
+		},
+		spi1: {
+			enabled: 0,
+			rx: -1,
+			cs: -1,
+			sck: -1,
+			tx: -1,
+		},
+		usb0: {
+			enabled: 0,
+			dp: -1,
+			enable5v: -1,
+			order: 0,
+		},
+	},
 };
 
 export const baseWiiControls = {
@@ -182,19 +196,15 @@ export const baseWiiControls = {
 };
 
 async function resetSettings() {
-	return axios
-		.get(`${baseUrl}/api/resetSettings`)
+	return Http.get(`${baseUrl}/api/resetSettings`)
 		.then((response) => response.data)
 		.catch(console.error);
 }
 
 async function getDisplayOptions() {
 	try {
-		const response = await axios.get(`${baseUrl}/api/getDisplayOptions`);
+		const response = await Http.get(`${baseUrl}/api/getDisplayOptions`);
 
-		if (response.data.i2cAddress) {
-			response.data.i2cAddress = '0x' + response.data.i2cAddress.toString(16);
-		}
 		response.data.splashDuration = response.data.splashDuration / 1000; // milliseconds to seconds
 		response.data.displaySaverTimeout =
 			response.data.displaySaverTimeout / 60000; // milliseconds to minutes
@@ -207,7 +217,6 @@ async function getDisplayOptions() {
 
 async function setDisplayOptions(options, isPreview) {
 	let newOptions = sanitizeRequest(options);
-	newOptions.i2cAddress = parseInt(options.i2cAddress);
 	newOptions.buttonLayout = parseInt(options.buttonLayout);
 	newOptions.buttonLayoutRight = parseInt(options.buttonLayoutRight);
 	newOptions.splashMode = parseInt(options.splashMode);
@@ -229,8 +238,7 @@ async function setDisplayOptions(options, isPreview) {
 	const url = !isPreview
 		? `${baseUrl}/api/setDisplayOptions`
 		: `${baseUrl}/api/setPreviewDisplayOptions`;
-	return axios
-		.post(url, newOptions)
+	return Http.post(url, newOptions)
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -243,7 +251,7 @@ async function setDisplayOptions(options, isPreview) {
 
 async function getSplashImage() {
 	try {
-		const response = await axios.get(`${baseUrl}/api/getSplashImage`);
+		const response = await Http.get(`${baseUrl}/api/getSplashImage`);
 		return response.data;
 	} catch (error) {
 		console.error(error);
@@ -251,12 +259,11 @@ async function getSplashImage() {
 }
 
 async function setSplashImage({ splashImage }) {
-	return axios
-		.post(`${baseUrl}/api/setSplashImage`, {
-			splashImage: btoa(
-				String.fromCharCode.apply(null, new Uint8Array(splashImage)),
-			),
-		})
+	return Http.post(`${baseUrl}/api/setSplashImage`, {
+		splashImage: btoa(
+			String.fromCharCode.apply(null, new Uint8Array(splashImage)),
+		),
+	})
 		.then((response) => {
 			return response.data;
 		})
@@ -267,7 +274,7 @@ async function getGamepadOptions(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getGamepadOptions`);
+		const response = await Http.get(`${baseUrl}/api/getGamepadOptions`);
 		setLoading(false);
 		return response.data;
 	} catch (error) {
@@ -277,8 +284,7 @@ async function getGamepadOptions(setLoading) {
 }
 
 async function setGamepadOptions(options) {
-	return axios
-		.post(`${baseUrl}/api/setGamepadOptions`, sanitizeRequest(options))
+	return Http.post(`${baseUrl}/api/setGamepadOptions`, sanitizeRequest(options))
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -293,16 +299,10 @@ async function getLedOptions(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getLedOptions`);
+		const response = await Http.get(`${baseUrl}/api/getLedOptions`);
 		setLoading(false);
 
 		response.data.pledColor = rgbIntToHex(response.data.pledColor) || '#ffffff';
-		if (response.data.pledType === 1) {
-			response.data.pledIndex1 = response.data.pledPin1;
-			response.data.pledIndex2 = response.data.pledPin2;
-			response.data.pledIndex3 = response.data.pledPin3;
-			response.data.pledIndex4 = response.data.pledPin4;
-		}
 
 		return response.data;
 	} catch (error) {
@@ -312,10 +312,7 @@ async function getLedOptions(setLoading) {
 }
 
 async function setLedOptions(options) {
-	let data = sanitizeRequest(options);
-
-	return axios
-		.post(`${baseUrl}/api/setLedOptions`, sanitizeRequest(options))
+	return Http.post(`${baseUrl}/api/setLedOptions`, sanitizeRequest(options))
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -330,7 +327,7 @@ async function getCustomTheme(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getCustomTheme`);
+		const response = await Http.get(`${baseUrl}/api/getCustomTheme`);
 		setLoading(false);
 
 		let data = { hasCustomTheme: response.data.enabled, customTheme: {} };
@@ -364,8 +361,7 @@ async function setCustomTheme(customThemeOptions) {
 		};
 	});
 
-	return axios
-		.post(`${baseUrl}/api/setCustomTheme`, sanitizeRequest(options))
+	return Http.post(`${baseUrl}/api/setCustomTheme`, sanitizeRequest(options))
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -376,88 +372,59 @@ async function setCustomTheme(customThemeOptions) {
 		});
 }
 
-async function getPinMappings(setLoading) {
-	setLoading(true);
-
+async function getButtonLayouts() {
 	try {
-		const response = await axios.get(`${baseUrl}/api/getPinMappings`);
-		let mappings = { ...baseButtonMappings };
-		for (let prop of Object.keys(response.data))
-			mappings[prop].pin = parseInt(response.data[prop]);
+		const response = await Http.get(`${baseUrl}/api/getButtonLayouts`);
 
-		return mappings;
+		return response.data;
 	} catch (error) {
 		console.error(error);
-		return false;
+	}
+}
+
+async function getButtonLayoutDefs() {
+	try {
+		const response = await Http.get(`${baseUrl}/api/getButtonLayoutDefs`);
+
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
+async function getPinMappings() {
+	try {
+		const { data } = await Http.get(`${baseUrl}/api/getPinMappings`);
+		return data;
+	} catch (error) {
+		console.log(error);
 	}
 }
 
 async function setPinMappings(mappings) {
-	let data = {};
-	Object.keys(mappings).map(
-		(button, i) => (data[button] = mappings[button].pin),
-	);
-
-	return axios
-		.post(`${baseUrl}/api/setPinMappings`, sanitizeRequest(data))
-		.then((response) => {
-			console.log(response.data);
-			return true;
-		})
-		.catch((err) => {
-			console.error(err);
-			return false;
-		});
+	return Http.post(`${baseUrl}/api/setPinMappings`, mappings);
 }
 
-async function getProfileOptions(setLoading) {
-	setLoading(true);
-
+async function getProfileOptions() {
 	try {
-		const response = await axios.get(`${baseUrl}/api/getProfileOptions`);
-		let profileOptions = { ...baseProfileOptions };
-		response.data['alternativePinMappings'].forEach((altButtons, index) => {
-			for (let prop of Object.keys(altButtons))
-				profileOptions['alternativePinMappings'][index][prop].pin = parseInt(
-					response.data['alternativePinMappings'][index][prop],
-				);
-		});
-		setLoading(false);
-		return profileOptions;
+		const { data } = await Http.get(`${baseUrl}/api/getProfileOptions`);
+		return data?.alternativePinMappings;
 	} catch (error) {
-		console.error(error);
-		return false;
+		console.log(error);
 	}
 }
 
-async function setProfileOptions(options) {
-	let data = {};
-	data['alternativePinMappings'] = [];
-	options['alternativePinMappings'].forEach((altButtons, index) => {
-		let altMapping = {};
-		Object.keys(options['alternativePinMappings'][index]).map(
-			(button, i) => (altMapping[button] = altButtons[button].pin),
-		);
-		data['alternativePinMappings'].push(altMapping);
+async function setProfileOptions(mappings) {
+	return Http.post(`${baseUrl}/api/setProfileOptions`, {
+		alternativePinMappings: mappings,
 	});
-
-	return axios
-		.post(`${baseUrl}/api/setProfileOptions`, sanitizeRequest(data))
-		.then((response) => {
-			console.log(response.data);
-			return true;
-		})
-		.catch((err) => {
-			console.error(err);
-			return false;
-		});
 }
 
 async function getKeyMappings(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getKeyMappings`);
+		const response = await Http.get(`${baseUrl}/api/getKeyMappings`);
 		setLoading(false);
 
 		let mappings = { ...baseButtonMappings };
@@ -473,12 +440,9 @@ async function getKeyMappings(setLoading) {
 
 async function setKeyMappings(mappings) {
 	let data = {};
-	Object.keys(mappings).map(
-		(button, i) => (data[button] = mappings[button].key),
-	);
+	Object.keys(mappings).map((button) => (data[button] = mappings[button].key));
 
-	return axios
-		.post(`${baseUrl}/api/setKeyMappings`, sanitizeRequest(data))
+	return Http.post(`${baseUrl}/api/setKeyMappings`, sanitizeRequest(data))
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -493,15 +457,17 @@ async function getAddonsOptions(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getAddonsOptions`);
+		const response = await Http.get(`${baseUrl}/api/getAddonsOptions`);
 		const data = response.data;
 		setLoading(false);
 
-		let mappings = { ...baseButtonMappings };
-		for (let prop of Object.keys(data.keyboardHostMap))
-			mappings[prop].key = parseInt(data.keyboardHostMap[prop]);
-		data.keyboardHostMap = mappings;
-		return data;
+		// Merge saved keyMappings with defaults
+		const keyboardHostMap = Object.entries(data.keyboardHostMap).reduce(
+			(acc, [key, value]) => ({ ...acc, [key]: { ...acc[key], key: value } }),
+			baseButtonMappings,
+		);
+
+		return { ...data, keyboardHostMap };
 	} catch (error) {
 		setLoading(false);
 		console.error(error);
@@ -512,13 +478,12 @@ async function setAddonsOptions(options) {
 	if (options.keyboardHostMap) {
 		let data = {};
 		Object.keys(options.keyboardHostMap).map(
-			(button, i) => (data[button] = options.keyboardHostMap[button].key),
+			(button) => (data[button] = options.keyboardHostMap[button].key),
 		);
 		options.keyboardHostMap = data;
 	}
 
-	return axios
-		.post(`${baseUrl}/api/setAddonsOptions`, sanitizeRequest(options))
+	return Http.post(`${baseUrl}/api/setAddonsOptions`, sanitizeRequest(options))
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -533,7 +498,7 @@ async function getMacroAddonOptions(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getMacroAddonOptions`);
+		const response = await Http.get(`${baseUrl}/api/getMacroAddonOptions`);
 		const data = response.data;
 		setLoading(false);
 
@@ -545,8 +510,10 @@ async function getMacroAddonOptions(setLoading) {
 }
 
 async function setMacroAddonOptions(options) {
-	return axios
-		.post(`${baseUrl}/api/setMacroAddonOptions`, sanitizeRequest(options))
+	return Http.post(
+		`${baseUrl}/api/setMacroAddonOptions`,
+		sanitizeRequest(options),
+	)
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -558,8 +525,7 @@ async function setMacroAddonOptions(options) {
 }
 
 async function setPS4Options(options) {
-	return axios
-		.post(`${baseUrl}/api/setPS4Options`, options)
+	return Http.post(`${baseUrl}/api/setPS4Options`, options)
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -573,8 +539,8 @@ async function setPS4Options(options) {
 async function getWiiControls(setLoading) {
 	setLoading(true);
 
-    try {
-		const response = await axios.get(`${baseUrl}/api/getWiiControls`);
+	try {
+		const response = await Http.get(`${baseUrl}/api/getWiiControls`);
 		setLoading(false);
 
 		let mappings = { ...baseWiiControls, ...response.data };
@@ -586,10 +552,9 @@ async function getWiiControls(setLoading) {
 }
 
 async function setWiiControls(mappings) {
-    console.dir(mappings);
+	console.dir(mappings);
 
-	return axios
-		.post(`${baseUrl}/api/setWiiControls`, sanitizeRequest(mappings))
+	return Http.post(`${baseUrl}/api/setWiiControls`, sanitizeRequest(mappings))
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -600,10 +565,26 @@ async function setWiiControls(mappings) {
 		});
 }
 
+async function getReactiveLEDs(setLoading) {
+	setLoading(true);
+	try {
+		const response = await Http.get(`${baseUrl}/api/getReactiveLEDs`);
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
+async function setReactiveLEDs(leds) {
+	console.dir(leds);
+
+	return Http.post(`${baseUrl}/api/setReactiveLEDs`, leds);
+}
+
 async function getPeripheralOptions(setLoading) {
-    setLoading(true);
-    try {
-		const response = await axios.get(`${baseUrl}/api/getPeripheralOptions`);
+	setLoading(true);
+	try {
+		const response = await Http.get(`${baseUrl}/api/getPeripheralOptions`);
 		setLoading(false);
 
 		let mappings = { ...basePeripheralMapping, ...response.data };
@@ -615,10 +596,12 @@ async function getPeripheralOptions(setLoading) {
 }
 
 async function setPeripheralOptions(mappings) {
-    console.dir(mappings);
+	console.dir(mappings);
 
-	return axios
-		.post(`${baseUrl}/api/setPeripheralOptions`, sanitizeRequest(mappings))
+	return Http.post(
+		`${baseUrl}/api/setPeripheralOptions`,
+		sanitizeRequest(mappings),
+	)
 		.then((response) => {
 			console.log(response.data);
 			return true;
@@ -633,7 +616,8 @@ async function getFirmwareVersion(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getFirmwareVersion`);
+		const response = await Http.get(`${baseUrl}/api/getFirmwareVersion`);
+		console.log('got firmware version:', response.data);
 		setLoading(false);
 		return response.data;
 	} catch (error) {
@@ -646,7 +630,7 @@ async function getMemoryReport(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getMemoryReport`);
+		const response = await Http.get(`${baseUrl}/api/getMemoryReport`);
 		setLoading(false);
 		return response.data;
 	} catch (error) {
@@ -659,7 +643,7 @@ async function getUsedPins(setLoading) {
 	setLoading(true);
 
 	try {
-		const response = await axios.get(`${baseUrl}/api/getUsedPins`);
+		const response = await Http.get(`${baseUrl}/api/getUsedPins`);
 		setLoading(false);
 		return response.data;
 	} catch (error) {
@@ -668,44 +652,54 @@ async function getUsedPins(setLoading) {
 	}
 }
 
+async function getExpansionPins() {
+	try {
+		const response = await Http.get(`${baseUrl}/api/getExpansionPins`);
+		return response.data;
+	} catch (error) {
+		console.error(error);
+	}
+}
+
+async function setExpansionPins(mappings) {
+	console.dir(mappings);
+
+	return Http.post(`${baseUrl}/api/setExpansionPins`, mappings);
+}
+
 async function getHeldPins(abortSignal) {
 	try {
-		const response = await axios.get(`${baseUrl}/api/getHeldPins`, {
+		const response = await Http.get(`${baseUrl}/api/getHeldPins`, {
 			signal: abortSignal,
 		});
 		return response.data;
 	} catch (error) {
-		if (error?.code === 'ERR_CANCELED') return { canceled: true };
+		if (error?.name === 'AbortError') return { canceled: true };
 		else console.error(error);
 	}
 }
 
 async function abortGetHeldPins() {
 	try {
-		await axios.get(`${baseUrl}/api/abortGetHeldPins`);
+		await Http.get(`${baseUrl}/api/abortGetHeldPins`);
 	} catch (error) {
 		// Expected to fail
 	}
 }
 
 async function reboot(bootMode) {
-	return axios
-		.post(`${baseUrl}/api/reboot`, { bootMode })
+	return Http.post(`${baseUrl}/api/reboot`, { bootMode })
 		.then((response) => response.data)
 		.catch(console.error);
 }
 
 function sanitizeRequest(request) {
 	const newRequest = { ...request };
-	delete newRequest.pledIndex1;
-	delete newRequest.pledIndex2;
-	delete newRequest.pledIndex3;
-	delete newRequest.pledIndex4;
 	delete newRequest.usedPins;
 	return newRequest;
 }
 
-const WebApi = {
+export default {
 	resetSettings,
 	getDisplayOptions,
 	setDisplayOptions,
@@ -715,6 +709,7 @@ const WebApi = {
 	setLedOptions,
 	getCustomTheme,
 	setCustomTheme,
+	getPinMappings,
 	setPinMappings,
 	getProfileOptions,
 	setProfileOptions,
@@ -729,6 +724,12 @@ const WebApi = {
 	setWiiControls,
 	getPeripheralOptions,
 	setPeripheralOptions,
+	getExpansionPins,
+	setExpansionPins,
+	getReactiveLEDs,
+	setReactiveLEDs,
+	getButtonLayouts,
+	getButtonLayoutDefs,
 	getSplashImage,
 	setSplashImage,
 	getFirmwareVersion,
@@ -738,5 +739,3 @@ const WebApi = {
 	abortGetHeldPins,
 	reboot,
 };
-
-export default WebApi;
